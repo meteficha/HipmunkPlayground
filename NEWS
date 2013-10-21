@@ -1,0 +1,55 @@
+Version 5.2.0.6
+===============
+ - Accept OpenGL 2.5 as well.  Thanks again, Sergei Trofimovich!
+
+Version 5.2.0.5
+===============
+ - Accept GLFW 0.5 as well.
+
+Version 5.2.0.4
+===============
+ - Now buildable on GHC 7.0.  Thanks, Sergei Trofimovich.
+
+Version 5.2.0.3
+===============
+ - Correctly handle window resizes.
+
+Version 5.2.0.2
+===============
+ - Add repo URL to cabal file.
+
+Version 5.2.0.1
+===============
+ - Show collision points.
+
+Version 5.2.0
+=============
+ - Updated to Hipmunk 5.2.0 (which uses StateVar).
+ - Updated to OpenGL 2.4.0.1.
+ - Updated to GLFW 0.4.2.
+
+Version 5.1.0
+=============
+ - Updated to Hipmunk 5.1.0.
+
+Version 5.0.0
+=============
+ - Updated for Hipmunk 5.0.0. Yay!
+ - Added a small car using @SimpleMotor@ (not the best way
+   of creating a car, but it works as a demo).
+
+Version 0.2
+===========
+ - Add a seesaw to the middle of the screen.
+ - Show the line of the pendulum.
+ - Show instructions on the screen.
+ - Add slow motion key.
+ - Add clear screen key.
+ - Add rotation control keys.
+ - Use higher frequency for the Chipmunk engine (360Hz instead of 120Hz).
+ - Draw a small red dot on the body's center.
+
+
+Version 0.1
+===========
+ - Initial public release.
