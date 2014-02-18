@@ -5,11 +5,12 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.IORef
 import Data.List (unzip4)
-import Data.StateVar
+import Data.StateVar as SV
 import System.Exit
 
 import Graphics.UI.GLFW
-import Graphics.Rendering.OpenGL
+import Graphics.Rendering.OpenGL.GL.CoordTrans
+import Graphics.Rendering.OpenGL as GL
 import qualified Physics.Hipmunk as H
 
 type Time = Double
@@ -81,7 +82,7 @@ initialState :: IO State
 initialState = do
   -- The (empty) space
   space <- H.newSpace
-  H.gravity space $= 0 +: -230
+  H.gravity space SV.$= 0 +: -230
 
   -- Default objects
   seesaw  <- buildSeesaw space
@@ -109,11 +110,11 @@ initialState = do
 buildGround :: H.Space -> IO Object
 buildGround space = do
   static <- H.newBody H.infinity H.infinity
-  H.position static $= -330 +: 0
+  H.position static SV.$= -330 +: 0
   let seg1type = H.LineSegment (50 +: -230) (610 +: -230) 1
   seg1   <- H.newShape static seg1type 0
-  H.friction   seg1 $= 1.0
-  H.elasticity seg1 $= 0.6
+  H.friction   seg1 SV.$= 1.0
+  H.elasticity seg1 SV.$= 0.6
   H.spaceAdd space (H.Static seg1)
   return (seg1, (drawMyShape seg1 seg1type, return ()))
 
@@ -126,10 +127,10 @@ buildSeesaw space = do
       supportM = 500
       supportI = H.momentForPoly supportM supportV 0
   supportB <- H.newBody supportM supportI
-  H.position supportB $= 0 +: 20-230
+  H.position supportB SV.$= 0 +: 20-230
   supportS <- H.newShape supportB supportT 0
-  H.friction   supportS $= 2.0
-  H.elasticity supportS $= 0.1
+  H.friction   supportS SV.$= 2.0
+  H.elasticity supportS SV.$= 0.1
   H.spaceAdd space supportB
   H.spaceAdd space supportS
   ----- Board
@@ -138,11 +139,11 @@ buildSeesaw space = do
       boardM = 10
       boardI = H.momentForPoly boardM boardV 0
   boardB <- H.newBody boardM boardI
-  H.position boardB $= 0 +: 40-230
+  H.position boardB SV.$= 0 +: 40-230
   boardS <- H.newShape boardB boardT 0
   let setBoardProps shape = do
-        H.friction   shape $= 2.0
-        H.elasticity shape $= 0.1
+        H.friction   shape SV.$= 2.0
+        H.elasticity shape SV.$= 0.1
   setBoardProps boardS
   H.spaceAdd space boardB
   H.spaceAdd space boardS
@@ -156,7 +157,7 @@ buildSeesaw space = do
   H.spaceAdd space seesawJoint
   ----- Avoiding self-collisions
   forM_ (supportS : boardS : boardS2) $ \s -> do
-    H.group s $= 1
+    H.group s SV.$= 1
   ----- Removing and drawing
   let drawSeeSaw = do
         drawMyShape supportS supportT
@@ -180,10 +181,10 @@ buildCar space = do
       bodyworkM = 40
       bodyworkI = H.momentForPoly bodyworkM bodyworkV 0
   bodyworkB <- H.newBody bodyworkM bodyworkI
-  H.position bodyworkB $= bodyworkP
+  H.position bodyworkB SV.$= bodyworkP
   bodyworkS <- H.newShape bodyworkB bodyworkT 0
-  H.friction   bodyworkS $= 1.5
-  H.elasticity bodyworkS $= 0.1
+  H.friction   bodyworkS SV.$= 1.5
+  H.elasticity bodyworkS SV.$= 0.1
   H.spaceAdd space bodyworkB
   H.spaceAdd space bodyworkS
   ---- Wheels
@@ -197,10 +198,10 @@ buildCar space = do
       fmap unzip4 $ forM [-25, 25] $ \x -> do
     -- Basic
     wheelB <- H.newBody wheelM wheelI
-    H.position wheelB $= (x +: -24) + bodyworkP
+    H.position wheelB SV.$= (x +: -24) + bodyworkP
     wheelS <- H.newShape wheelB wheelT 0
-    H.friction   wheelS $= 2.0
-    H.elasticity wheelS $= 0.25
+    H.friction   wheelS SV.$= 2.0
+    H.elasticity wheelS SV.$= 0.25
     -- Constraints
     wheelC1 <- H.newConstraint bodyworkB wheelB (wheelJ1 x)
     wheelC2 <- H.newConstraint bodyworkB wheelB (wheelJ2 x)
@@ -249,29 +250,29 @@ main = do
   stateVar <- initialState >>= newIORef
 
   -- Create a window
-  assertTrue (openWindow (Size 800 600) [] Window) "Failed to open a window"
-  windowTitle $= "Hipmunk Playground"
+  assertTrue (openWindow (GL.Size 1200 900) [] Window) "Failed to open a window"
+  windowTitle GL.$= "Hipmunk Playground"
 
   -- Define some GL parameters for the whole program
-  clearColor  $= Color4 1 1 1 1
-  pointSmooth $= Enabled
-  pointSize   $= 3
-  lineSmooth  $= Enabled
-  lineWidth   $= 2.5
-  blend       $= Enabled
-  blendFunc   $= (SrcAlpha, OneMinusSrcAlpha)
-  matrixMode  $= Projection
+  clearColor  GL.$= Color4 1 1 1 1
+  pointSmooth GL.$= Enabled
+  pointSize   GL.$= 3
+  lineSmooth  GL.$= Enabled
+  lineWidth   GL.$= 2.5
+  blend       GL.$= Enabled
+  blendFunc   GL.$= (SrcAlpha, OneMinusSrcAlpha)
+  matrixMode  GL.$= Projection
   loadIdentity
   ortho (-320) 320 (-240) 240 (-1) 1
   translate (Vector3 0.5 0.5 zero)
 
   -- Add some callbacks to GLFW
-  windowCloseCallback $= exitWith ExitSuccess
-  windowSizeCallback  $= (\size -> viewport $= (Position 0 0, size))
-  mouseButtonCallback $= processMouseInput stateVar
+  windowCloseCallback GL.$= exitWith ExitSuccess
+  windowSizeCallback  GL.$= (\size -> viewport GL.$= (Position 0 0, size))
+  mouseButtonCallback GL.$= processMouseInput stateVar
 
   -- Let's go!
-  now <- get time
+  now <- GL.get time
   loop stateVar now
 
 -- | The simulation loop.
@@ -314,7 +315,7 @@ updateCar stateVar leftKey rightKey = do
 -- | Advances the time.
 advanceTime :: IORef State -> Time -> KeyButtonState -> IO Time
 advanceTime stateVar oldTime slowKey = do
-  newTime <- get time
+  newTime <- GL.get time
 
   -- Advance simulation
   let slower = if slowKey == Press then slowdown else 1
@@ -324,7 +325,7 @@ advanceTime stateVar oldTime slowKey = do
   advanceSimulTime stateVar $ min maxSteps framesPassed
 
   -- Correlate with reality
-  newTime' <- get time
+  newTime' <- GL.get time
   let diff = newTime' - simulNewTime
       sleepTime = ((framePeriod * slower) - diff) / slower
   when (sleepTime > 0) $ sleep sleepTime
@@ -343,7 +344,7 @@ advanceTime stateVar oldTime slowKey = do
 -- | Renders the current state.
 updateDisplay :: IORef State -> KeyButtonState -> IO ()
 updateDisplay stateVar slowKey = do
-  state <- get stateVar
+  state <- SV.get stateVar
   clear [ColorBuffer]
   drawInstructions
   when (slowKey == Press) drawSlowMotion
@@ -383,8 +384,8 @@ drawSlowMotion = preservingMatrix $ do
 -- | Draws a shape (assuming zero offset)
 drawMyShape :: H.Shape -> H.ShapeType -> IO ()
 drawMyShape shape (H.Circle radius) = do
-  H.Vector px py <- get $ H.position $ H.body shape
-  angle          <- get $ H.angle    $ H.body shape
+  H.Vector px py <- SV.get $ H.position $ H.body shape
+  angle          <- SV.get $ H.angle    $ H.body shape
 
   color $ Color3 zero zero zero
   renderPrimitive LineStrip $ do
@@ -398,13 +399,13 @@ drawMyShape shape (H.Circle radius) = do
   drawPoint PositionPoint (px +: py)
 drawMyShape shape (H.LineSegment p1 p2 _) = do
   let v (H.Vector x y) = vertex' x y
-  pos <- get $ H.position $ H.body shape
+  pos <- SV.get $ H.position $ H.body shape
   color $ Color3 zero zero zero
   renderPrimitive Lines $ v (p1 + pos) >> v (p2 + pos)
   drawPoint PositionPoint pos
 drawMyShape shape (H.Polygon verts) = do
-  pos   <- get $ H.position $ H.body shape
-  angle <- get $ H.angle    $ H.body shape
+  pos   <- SV.get $ H.position $ H.body shape
+  angle <- SV.get $ H.angle    $ H.body shape
   let rot = H.rotate $ H.fromAngle angle
       verts' = map ((+pos) . rot) verts
   color $ Color3 zero zero zero
@@ -437,11 +438,11 @@ data PointType = PositionPoint | CollisionPoint
 -- | Returns the current mouse position in our space's coordinates.
 getMousePos :: IO H.Position
 getMousePos = do
-  Position cx cy <- get mousePos
-  Size _ h <- get $ windowSize
-  model    <- get $ matrix (Just $ Modelview 0)
-  proj     <- get $ matrix (Just Projection)
-  view     <- get $ viewport
+  Position cx cy <- GL.get mousePos
+  Size _ h <- GL.get $ windowSize
+  model    <- GL.get $ matrix (Just $ Modelview 0)
+  proj     <- GL.get $ matrix (Just Projection)
+  view     <- GL.get $ viewport
   let src = Vertex3 (fromIntegral cx) (fromIntegral h - fromIntegral cy) 0
   Vertex3 mx my _ <- unProject src (model :: GLmatrix GLdouble) proj view
   return (realToFrac mx +: realToFrac my)
@@ -461,9 +462,9 @@ processMouseInput stateVar btn Release = do
     ButtonRight -> createSquare
     _           -> createTriPendulum) angVel
 
-  state <- get stateVar
+  state <- SV.get stateVar
   let space = stSpace state
-  add space >> stateVar $= state {
+  add space >> stateVar SV.$= state {
     stShapes = M.insert shape (draw, remove space) $ stShapes state}
 
 
@@ -492,10 +493,10 @@ createCircle angVel = do
       t = H.Circle radius
   b <- H.newBody mass $ H.momentForCircle mass (0, radius) 0
   s <- H.newShape b t 0
-  (H.position b $=) =<< getMousePos
-  H.angVel     b $= angVel
-  H.friction   s $= 0.5
-  H.elasticity s $= 0.9
+  (H.position b SV.$=) =<< getMousePos
+  H.angVel     b SV.$= angVel
+  H.friction   s SV.$= 0.5
+  H.elasticity s SV.$= 0.9
   let add space = do
         H.spaceAdd space b
         H.spaceAdd space s
@@ -513,10 +514,10 @@ createSquare angVel = do
       t = H.Polygon verts
   b <- H.newBody mass $ H.momentForPoly mass verts 0
   s <- H.newShape b t 0
-  (H.position b $=) =<< getMousePos
-  H.angVel     b $= angVel
-  H.friction   s $= 0.5
-  H.elasticity s $= 0.6
+  (H.position b SV.$=) =<< getMousePos
+  H.angVel     b SV.$= angVel
+  H.friction   s SV.$= 0.5
+  H.elasticity s SV.$= 0.6
   let add space = do
         H.spaceAdd space b
         H.spaceAdd space s
@@ -534,14 +535,14 @@ createTriPendulum angVel = do
       t = H.Polygon verts
   b <- H.newBody mass $ H.momentForPoly mass verts 0
   s <- H.newShape b t 0
-  (H.position b $=) =<< getMousePos
-  H.angVel     b $= angVel
-  H.friction   s $= 0.8
-  H.elasticity s $= 0.3
+  (H.position b SV.$=) =<< getMousePos
+  H.angVel     b SV.$= angVel
+  H.friction   s SV.$= 0.8
+  H.elasticity s SV.$= 0.3
 
   let staticPos = 0 +: 240
   static <- H.newBody H.infinity H.infinity
-  H.position static $= staticPos
+  H.position static SV.$= staticPos
   j <- H.newConstraint static b (H.Pin 0 0)
 
   let add space = do
@@ -553,7 +554,7 @@ createTriPendulum angVel = do
         H.spaceRemove space s
         H.spaceRemove space j
   let draw = do
-        H.Vector x1 y1 <- get $ H.position b
+        H.Vector x1 y1 <- SV.get $ H.position b
         let H.Vector x2 y2 = staticPos
         color $ Color3 (0.7 `asTypeOf` zero) 0.7 0.7
         renderPrimitive LineStrip $ do
@@ -581,7 +582,7 @@ advanceSimulTime :: IORef State -> Int -> IO ()
 advanceSimulTime _        0     = return ()
 advanceSimulTime stateVar steps = do
   removeOutOfSight stateVar
-  state <- get stateVar
+  state <- SV.get stateVar
 
   -- Do (steps-1) steps that clear the collisions variable.
   let clearCollisions = writeIORef (stCollisionsVar state) []
@@ -594,12 +595,12 @@ advanceSimulTime stateVar steps = do
 -- | Removes all shapes that may be out of sight forever.
 removeOutOfSight :: IORef State -> IO ()
 removeOutOfSight stateVar = do
-  state   <- get stateVar
+  state   <- SV.get stateVar
   shapes' <- foldM f (stShapes state) $ M.assocs (stShapes state)
-  stateVar $= state {stShapes = shapes'}
+  stateVar SV.$= state {stShapes = shapes'}
     where
       f shapes (shape, (_,remove)) = do
-        H.Vector x y <- get $ H.position $ H.body shape
+        H.Vector x y <- SV.get $ H.position $ H.body shape
         if y < (-350) || abs x > 800
           then remove >> return (M.delete shape shapes)
           else return shapes
