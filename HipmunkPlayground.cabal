@@ -61,7 +61,7 @@ Flag small_base
 
 Executable HipmunkPlayground
   if flag(small_base)
-    Build-Depends: base >= 3 && < 5, containers >= 0.1 && < 0.5
+    Build-Depends: base >= 3 && < 5, containers >= 0.1 && < 0.6
   else
     Build-Depends: base >= 2 && < 3
   Build-Depends: Hipmunk >= 5.2 && < 5.3, transformers >= 0.2 && < 0.4,
